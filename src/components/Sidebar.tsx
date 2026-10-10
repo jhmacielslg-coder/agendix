@@ -47,22 +47,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onO
       {/* Brand Header */}
       <div style={{ padding: '24px 20px', borderBottom: '1px solid var(--slate-200)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--primary-600)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1.2rem',
-            }}
-          >
-            A
-          </div>
+          {business.logo_url ? (
+            <img
+              src={business.logo_url}
+              alt={business.name}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                objectFit: 'cover',
+                border: '1px solid var(--slate-200)',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--primary-600)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1.2rem',
+              }}
+            >
+              {(business.name ? business.name[0] : 'A').toUpperCase()}
+            </div>
+          )}
           <div>
             <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slate-900)', letterSpacing: '-0.02em' }}>
               Agendix

@@ -125,14 +125,14 @@ export const PublicBookingPage: React.FC<PublicBookingPageProps> = () => {
     setStep(4);
   };
 
-  const handleConfirmBooking = (e: React.FormEvent) => {
+  const handleConfirmBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage('');
 
-    const res = createAppointment({
+    const res = await createAppointment({
       service_id: selectedServiceId,
       professional_id: selectedProfessionalId,
       client_name: clientName,
@@ -189,23 +189,38 @@ export const PublicBookingPage: React.FC<PublicBookingPageProps> = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: 'var(--radius-lg)',
-              backgroundColor: 'var(--primary-600)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1.4rem',
-              flexShrink: 0,
-            }}
-          >
-            {business.name.slice(0, 1).toUpperCase()}
-          </div>
+          {business.logo_url ? (
+            <img
+              src={business.logo_url}
+              alt={business.name}
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: 'var(--radius-lg)',
+                objectFit: 'cover',
+                flexShrink: 0,
+                border: '1px solid var(--slate-200)',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: 'var(--radius-lg)',
+                backgroundColor: 'var(--primary-600)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1.4rem',
+                flexShrink: 0,
+              }}
+            >
+              {business.name.slice(0, 1).toUpperCase()}
+            </div>
+          )}
           <div style={{ flex: 1 }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--slate-900)', lineHeight: 1.2 }}>
               {business.name}
@@ -313,18 +328,34 @@ export const PublicBookingPage: React.FC<PublicBookingPageProps> = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate-900)' }}>
-                      {srv.name}
-                    </h4>
-                    {srv.description && (
-                      <p style={{ fontSize: '0.82rem', color: 'var(--slate-600)', marginTop: '2px', maxWidth: '300px' }}>
-                        {srv.description}
-                      </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                    {srv.image_url && (
+                      <img
+                        src={srv.image_url}
+                        alt={srv.name}
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: 'var(--radius-md)',
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                          border: '1px solid var(--slate-200)',
+                        }}
+                      />
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--slate-500)', marginTop: '6px' }}>
-                      <Clock size={13} />
-                      <span>{srv.duration_minutes} minutos</span>
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate-900)' }}>
+                        {srv.name}
+                      </h4>
+                      {srv.description && (
+                        <p style={{ fontSize: '0.82rem', color: 'var(--slate-600)', marginTop: '2px', maxWidth: '300px' }}>
+                          {srv.description}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--slate-500)', marginTop: '6px' }}>
+                        <Clock size={13} />
+                        <span>{srv.duration_minutes} minutos</span>
+                      </div>
                     </div>
                   </div>
 
@@ -369,22 +400,38 @@ export const PublicBookingPage: React.FC<PublicBookingPageProps> = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--primary-100)',
-                        color: 'var(--primary-700)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: '1rem',
-                      }}
-                    >
-                      {pro.name.slice(0, 2).toUpperCase()}
-                    </div>
+                    {pro.avatar_url ? (
+                      <img
+                        src={pro.avatar_url}
+                        alt={pro.name}
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '2px solid var(--primary-200)',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--primary-100)',
+                          color: 'var(--primary-700)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '1rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {pro.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div>
                       <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate-900)' }}>
                         {pro.name}
@@ -543,9 +590,16 @@ export const PublicBookingPage: React.FC<PublicBookingPageProps> = () => {
                   {selectedService?.name}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>Profissional:</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--slate-800)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--slate-800)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {selectedProfessional?.avatar_url && (
+                    <img
+                      src={selectedProfessional.avatar_url}
+                      alt={selectedProfessional.name}
+                      style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  )}
                   {selectedProfessional?.name}
                 </span>
               </div>

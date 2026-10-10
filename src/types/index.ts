@@ -26,6 +26,7 @@ export interface Service {
   description?: string;
   price: number; // Em reais (R$)
   duration_minutes: number;
+  image_url?: string;
   active: boolean;
   created_at: string;
 }

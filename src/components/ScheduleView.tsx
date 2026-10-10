@@ -98,9 +98,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onOpenNewAppointment
     }
   };
 
-  const handleConfirmReschedule = () => {
+  const handleConfirmReschedule = async () => {
     if (!selectedAppointment || !newRescheduleTime) return;
-    const res = rescheduleAppointment(selectedAppointment.id, newRescheduleTime);
+    const res = await rescheduleAppointment(selectedAppointment.id, newRescheduleTime);
     if (res.success) {
       setIsRescheduling(false);
       setSelectedAppointment(null);

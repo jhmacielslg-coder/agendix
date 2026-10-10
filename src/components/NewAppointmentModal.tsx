@@ -37,14 +37,14 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ isOpen
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
 
     const startDateTime = `${date}T${time}:00`;
 
-    const res = createAppointment({
+    const res = await createAppointment({
       service_id: serviceId,
       professional_id: professionalId,
       client_name: clientName,

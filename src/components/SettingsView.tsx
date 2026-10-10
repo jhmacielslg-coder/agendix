@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Settings, Save, Check, RefreshCw, Building } from 'lucide-react';
+import { Settings, Save, Check, RefreshCw, Building, Upload, Trash2, Camera, Loader2 } from 'lucide-react';
+import { uploadImage } from '../lib/supabaseService';
 
 export const SettingsView: React.FC = () => {
   const { business, updateBusiness, resetToDemoData } = useApp();
@@ -14,12 +15,47 @@ export const SettingsView: React.FC = () => {
   const [city, setCity] = useState(business.city);
   const [state, setState] = useState(business.state);
   const [timezone, setTimezone] = useState(business.timezone || 'America/Sao_Paulo');
+  const [logoUrl, setLogoUrl] = useState(business.logo_url || '');
 
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    setUploadError('');
+    setIsUploadingLogo(true);
+    try {
+      const publicUrl = await uploadImage(file, 'logos');
+      setLogoUrl(publicUrl);
+      await updateBusiness({ logo_url: publicUrl });
+    } catch (err: any) {
+      setUploadError(err.message || 'Falha ao fazer upload da logo.');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    setLogoUrl('');
+    await updateBusiness({ logo_url: '' });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateBusiness({
+    await updateBusiness({
       name,
       slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       category: category as any,
@@ -29,6 +65,7 @@ export const SettingsView: React.FC = () => {
       city,
       state,
       timezone,
+      logo_url: logoUrl,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -41,8 +78,101 @@ export const SettingsView: React.FC = () => {
           Configurações do Estabelecimento
         </h1>
         <p style={{ color: 'var(--slate-500)', fontSize: '0.95rem', marginTop: '2px' }}>
-          Gerencie as informações públicas, endereço e link exclusivo da sua empresa.
+          Gerencie a identidade visual, logo, informações públicas e link exclusivo da sua empresa.
         </p>
+      </div>
+
+      {/* Card da Logo do Estabelecimento */}
+      <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--slate-900)', marginBottom: '6px' }}>
+          Logo do Estabelecimento
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', marginBottom: '18px' }}>
+          Essa imagem será exibida no topo da sua página pública de agendamento e no menu principal.
+        </p>
+
+        {uploadError && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '14px' }}>
+            {uploadError}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              width: '96px',
+              height: '96px',
+              borderRadius: '20px',
+              border: '2px dashed var(--slate-300)',
+              backgroundColor: 'var(--slate-50)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <Camera size={32} style={{ color: 'var(--slate-400)' }} />
+            )}
+
+            {isUploadingLogo && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                }}
+              >
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            >
+              <Upload size={14} />
+              {isUploadingLogo ? 'Enviando...' : logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={isUploadingLogo}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Trash2 size={14} />
+                Remover Logo
+              </button>
+            )}
+
+            <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)' }}>
+              Formatos suportados: PNG, JPG, WebP (Máx. 5MB). Salvo no Supabase Storage.
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '24px' }}>

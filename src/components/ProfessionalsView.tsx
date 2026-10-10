@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Edit2, UserCheck, Phone, CheckSquare, Square, Clock } from 'lucide-react';
+import { Plus, Edit2, UserCheck, Phone, CheckSquare, Square, Clock, Upload, Trash2, Camera, Loader2 } from 'lucide-react';
 import { Professional, WorkingHour } from '../types';
 import { DAY_NAMES_PT } from '../lib/formatters';
+import { uploadImage } from '../lib/supabaseService';
 
 export const ProfessionalsView: React.FC = () => {
   const {
@@ -19,6 +20,10 @@ export const ProfessionalsView: React.FC = () => {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   // Horários de Atendimento Modal
@@ -26,18 +31,53 @@ export const ProfessionalsView: React.FC = () => {
   const [hoursList, setHoursList] = useState<WorkingHour[]>([]);
 
   const handleOpenModal = (pro?: Professional) => {
+    setUploadError(null);
     if (pro) {
       setEditingPro(pro);
       setName(pro.name);
       setPhone(pro.phone || '');
+      setAvatarUrl(pro.avatar_url || '');
       setSelectedServiceIds(pro.service_ids || []);
     } else {
       setEditingPro(null);
       setName('');
       setPhone('');
+      setAvatarUrl('');
       setSelectedServiceIds(services.map((s) => s.id));
     }
     setIsModalOpen(true);
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadError(null);
+      const publicUrl = await uploadImage(file, 'professionals');
+      setAvatarUrl(publicUrl);
+    } catch (err: any) {
+      console.error('Erro no upload da foto do profissional:', err);
+      setUploadError('Erro ao enviar imagem. Verifique a conexão com o Supabase.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl('');
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -46,12 +86,14 @@ export const ProfessionalsView: React.FC = () => {
       updateProfessional(editingPro.id, {
         name,
         phone,
+        avatar_url: avatarUrl || undefined,
         service_ids: selectedServiceIds,
       });
     } else {
       addProfessional({
         name,
         phone,
+        avatar_url: avatarUrl || undefined,
         service_ids: selectedServiceIds,
         active: true,
       });
@@ -124,22 +166,38 @@ export const ProfessionalsView: React.FC = () => {
             <div key={pro.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--primary-100)',
-                      color: 'var(--primary-700)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    {pro.name.slice(0, 2).toUpperCase()}
-                  </div>
+                  {pro.avatar_url ? (
+                    <img
+                      src={pro.avatar_url}
+                      alt={pro.name}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid var(--primary-200)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-100)',
+                        color: 'var(--primary-700)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {pro.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--slate-900)' }}>
                       {pro.name}
@@ -210,6 +268,89 @@ export const ProfessionalsView: React.FC = () => {
             </h3>
 
             <form onSubmit={handleSave}>
+              {/* Foto do Profissional */}
+              <div style={{ marginBottom: '20px' }}>
+                <label className="form-label">Foto do Profissional / Colaborador</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px' }}>
+                  <div
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--slate-100)',
+                      border: '2px dashed var(--slate-300)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Camera size={26} color="var(--slate-400)" />
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        onChange={handleAvatarChange}
+                        style={{ display: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="btn btn-secondary btn-sm"
+                        style={{ gap: '6px' }}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={14} />
+                            {avatarUrl ? 'Trocar Foto' : 'Adicionar Foto'}
+                          </>
+                        )}
+                      </button>
+
+                      {avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="btn btn-secondary btn-sm"
+                          style={{ color: '#ef4444', borderColor: '#fee2e2' }}
+                          title="Remover foto"
+                        >
+                          <Trash2 size={14} />
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>
+                      PNG, JPG ou WebP até 5MB. Barbeiro, dentista, especialista, etc.
+                    </span>
+                  </div>
+                </div>
+
+                {uploadError && (
+                  <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '6px' }}>
+                    {uploadError}
+                  </p>
+                )}
+              </div>
               <div className="form-group">
                 <label className="form-label">Nome do Profissional *</label>
                 <input
